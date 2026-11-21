@@ -22,6 +22,7 @@ and is declared as such in [Specification changes](specifications.md#readings-an
 | `.github/workflows/ci.yml` | every pull request, push to `main`, published release, manual | Go lint and tests, image build with the Linux assertion and a Trivy scan, chart lint and dry-run render; on a published release, the chart gate once more and the chart packaging and publication (see [Chart release](#chart-release)) |
 | `.github/workflows/release.yml` | manual, push to a `candidate/**` branch | Release candidate: the chart gate (see [Chart gate](#chart-gate)), then builds, pushes, signs and attests every image by digest and verifies each one (see [Image signing](#image-signing)); beside it the secrets baseline (see [Secrets](secrets.md#the-baseline-proof-tdr-bdd-08)) |
 | `.github/workflows/measurement-determinism.yml` | pull request and push to `main` touching the check, manual | Measures one fixture on a hosted runner, in a container, and on a deliberately divergent checkout, and requires the normalised measurement to be the same on all three |
+| `.github/workflows/token-store.yml` | pull requests touching the token store, its image, its chart or the pinned images; pushes to `main`; manual | Runs the schema migrations, the store's queries and the service's readiness checks against a PostgreSQL from the pinned image, then the chart's lifecycle (install, upgrade, uninstall) and the service's readiness against PostgreSQL and OpenBao on kind; the records are the run's artefact and the verdict goes to the job summary |
 | `.github/workflows/ocm-wallet.yml` | pull request and push to `main` touching the OCM wallet lane (the `ocm-*` charts, the umbrella, the proof, the pins, the scripts it calls), manual | Installs the umbrella with two service tokens, `ocm-backbone` and two `ocm-wallet` releases on kind and runs `scripts/verify-ocm-wallet/verify.sh`; publishes the records as the artifact `ocm-wallet-lane` |
 | `.github/workflows/policy-hook.yml` | pull requests touching the policy-hook probe, its script, the pinned Envoy image or the policy fixtures; manual | Runs the guard policy-hook proofs (`scripts/verify-policy-hook/verify.sh`) against Envoy from the pinned image, uploads the records as an artefact and writes the verdict and the latency numbers to the job summary |
 
@@ -223,6 +224,23 @@ Both jobs stay off until the repository variable `BDD_CLUSTER_ENABLED` is `true`
 (the read-only observer identity — never an administrator credential), `BDD_<KEY>_ORCE_URL`,
 `BDD_<KEY>_ORCE_READ_TOKEN`, `BDD_<KEY>_ORCE_HTTP_USER` and `BDD_<KEY>_ORCE_HTTP_PASS`, and as a
 repository variable `BDD_<KEY>_ORCE_LOGS_CMD`, plus its entry in the job's matrix.
+
+## Cluster reachability
+
+The `cluster-reachability` job checks, for each client cluster (IONOS, OSC zone A, OSC zone B), that
+the API server answers the pipeline and that the observer identity authenticates (`kubectl version`,
+`kubectl auth whoami`). It runs on pushes to `main`, on releases and on demand, never on pull requests,
+and does not depend on `BDD_CLUSTER_ENABLED`. A target is checked once its secret
+`BDD_<KEY>_OBSERVER_KUBECONFIG` is set (`IONOS`, `ZONE_A`, `ZONE_B`); until then the run says it was
+not checked, and never that it was reachable.
+
+The OSC zones have no BDD pool, so their observer is the service account in
+[deployment/ci/reachability-observer.yaml](https://github.com/eclipse-xfsc/facis-zero-trust-demonstrator/blob/main/deployment/ci/reachability-observer.yaml): the
+manifest grants it nothing, so it holds only what every authenticated identity is bound to by default
+(API discovery, the server version, a review of its own access). A cluster administrator applies it,
+checks its effective rights (`kubectl auth can-i --list --as=system:serviceaccount:ztd-ci:ztd-ci-observer`),
+builds the kubeconfig from the token in `ztd-ci/ztd-ci-observer-token` and hands it to a maintainer
+for the secret. The token does not expire; deleting that Secret revokes it.
 
 ## Image scan exceptions
 

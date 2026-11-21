@@ -8,6 +8,7 @@ documents its values in its own README.
 | BDD pool | `deployment/helm/bdd-pool` | in use (kind and IONOS) | [bdd-pool/README.md](bdd-pool/README.md) |
 | Admission provider | `deployment/helm/admission` | new; installed after Gatekeeper | [admission/README.md](admission/README.md) |
 | Admission pool | `deployment/helm/admission-pool` | new; admission-proof namespaces and tester identity | [admission-pool/README.md](admission-pool/README.md) |
+| Token store | `deployment/helm/token-store` | new; the authorization database's schema as a migration hook, and the service with its probes and identity, its endpoints to follow | [token-store/README.md](token-store/README.md) |
 | Application service | `deployment/helm/application-service` | in use (OSC shared namespace) | [application-service/README.md](application-service/README.md) |
 | TRAIN DNS zone manager | `deployment/helm/train-zone-manager` | new; proven on kind, installed into a zone's management plane | [train-zone-manager/README.md](train-zone-manager/README.md) |
 | OCM backbone | `deployment/helm/ocm-backbone` | new; proven on kind: the zone's Cassandra and NATS for the OCM W-Stack wallet lane, in the management plane | [ocm-backbone/README.md](ocm-backbone/README.md) |
